@@ -9,7 +9,6 @@ from langchain_google_genai import GoogleGenerativeAIEmbeddings, ChatGoogleGener
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Qdrant
-import os 
 from io import BytesIO
 from st_audiorec import st_audiorec
 from typing import IO
@@ -67,10 +66,10 @@ def chat_completion_call(text):
     response = client.chat.completions.create(model="gpt-3.5-turbo", messages=messages)
     return response.choices[0].message.content
 
+# for rag uncomment this 
 # def chat_completion_call(text):
 #         response = qa_ret(qdrant_store,text)
 #         return response
-
 
 def text_to_speech_ai(speech_file_path,response):
     client = OpenAI(api_key=API_KEY)
@@ -116,50 +115,49 @@ def text_to_speech_ai_with_elevenlab(speech_file_path,text: str) -> IO[bytes]:
     # print(f"{save_file_path}: A new audio file was saved successfully!"
     # Return the path of the saved audio file
     return speech_file_path
+# for rag 
+# def qdrant_client():
+#         embedding_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+#         qdrant_key = "key"
+#         URL = "url"
+#         qdrant_client = QdrantClient(
+#         url=URL,
+#         api_key=qdrant_key,
+#         )
+#         qdrant_store = Qdrant(qdrant_client,"my_first_xeven_collection" ,embedding_model)
+#         return qdrant_store
 
-def qdrant_client():
-        embedding_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-        qdrant_key = "key"
-        URL = "url"
-        qdrant_client = QdrantClient(
-        url=URL,
-        api_key=qdrant_key,
-        )
-        qdrant_store = Qdrant(qdrant_client,"my_first_xeven_collection" ,embedding_model)
-        return qdrant_store
+# qdrant_store = qdrant_client()
 
-qdrant_store = qdrant_client()
-
-def qa_ret(qdrant_store,text):
-    try:
-        template = """You are AI assistant that assisant user by providing answer to the question of user by extracting information from provided context:
-        {context} and chat_history if user question is related to chat_history take chat history as context .
-        if you donot find any relevant information from context for given question just say ask me another quuestion. you are ai assistant.
-        Answer should not be greater than 3 lines.
-        Question: {question}
-        """
-        prompt = ChatPromptTemplate.from_template(template)
-        retriever= qdrant_store.as_retriever(search_type="similarity", search_kwargs={"k": 2})
-        setup_and_retrieval = RunnableParallel(
-                {"context": retriever, "question": RunnablePassthrough()}
-                )
-            # Load QA Chain
-        model = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.3,google_api_key =api_key)
-        output_parser= StrOutputParser()
-        rag_chain = (
-        setup_and_retrieval
-        | prompt
-        | model
-        | output_parser
-        )
-        respone=rag_chain.invoke(text)
-        return respone
-    except Exception as ex:
-        return ex
+# def qa_ret(qdrant_store,text):
+#     try:
+#         template = """You are AI assistant that assisant user by providing answer to the question of user by extracting information from provided context:
+#         {context} and chat_history if user question is related to chat_history take chat history as context .
+#         if you donot find any relevant information from context for given question just say ask me another quuestion. you are ai assistant.
+#         Answer should not be greater than 3 lines.
+#         Question: {question}
+#         """
+#         prompt = ChatPromptTemplate.from_template(template)
+#         retriever= qdrant_store.as_retriever(search_type="similarity", search_kwargs={"k": 2})
+#         setup_and_retrieval = RunnableParallel(
+#                 {"context": retriever, "question": RunnablePassthrough()}
+#                 )
+#             # Load QA Chain
+#         model = ChatGoogleGenerativeAI(model="gemini-pro", temperature=0.3,google_api_key =api_key)
+#         output_parser= StrOutputParser()
+#         rag_chain = (
+#         setup_and_retrieval
+#         | prompt
+#         | model
+#         | output_parser
+#         )
+#         respone=rag_chain.invoke(text)
+#         return respone
+#     except Exception as ex:
+#         return ex
 
 method = st.radio("Select Method",("Openai_4o","Assembly_ai_openai_Elevenlab"))
 st.title("QA Retrieval with speech to text and text to speech")
-
 """
 Hi just click on the voice recorder and let me know how I can help you today ?
 """
@@ -173,8 +171,6 @@ if method == "Assembly_ai_openai_Elevenlab":
             speech_file_path = 'audio_response.mp3'
             text_to_speech_ai_with_elevenlab(speech_file_path, api_response)
             st.audio(speech_file_path)
-         
-
 if wav_audio_data is not None:
     # st.audio(wav_audio_data, format='audio/wav')
     ##Save the Recorded File
@@ -182,8 +178,6 @@ if wav_audio_data is not None:
     # st.audio(wav_audio_data,format=".wav")
     with open(audio_location, "wb") as f:
         f.write(wav_audio_data)
-
-    
     if method == "Openai_4o":
         text = transcribe_voice_to_text(audio_location)
         st.write(text)
@@ -192,8 +186,6 @@ if wav_audio_data is not None:
         speech_file_path = 'audio_response.mp3'
         text_to_speech_ai(speech_file_path, api_response)
         st.audio(speech_file_path)
-
-
     if method == "Assembly_ai_openai_Elevenlab":
         text = assembly_ai_voice_to_text(audio_location)
         st.write(text)
